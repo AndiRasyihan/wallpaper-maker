@@ -1,0 +1,33 @@
+# Virtual Environments & Dependencies
+.venv/
+__pycache__/
+node_modules/
+
+# Environment variables & secrets
+.env
+
+# Compiled bytecode
+*.pyc
+
+# OS & Editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Build outputs
+.build-outputs/
+build/
+.gradle/
+.kotlin/
+local.properties
+
+# Documents and Archives
+*.docx
+*.pdf
+*.pptx
+*.zip
+*.mhtml
+
+# Images and Media
+*.jpg
+*.png

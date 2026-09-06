@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wallpaper Maker</title>
+    <meta
+      name="description"
+      content="Editor wallpaper berbasis web - buat & kustom wallpaper lalu unduh sebagai gambar."
+    />
+    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">🎨</span>
+        <span class="brand-name">Wallpaper Maker</span>
+      </div>
+
+      <div class="size-controls">
+        <label
+          >Ukuran
+          <select id="preset-size">
+            <option value="1080x1920">HP - Potret (1080×1920)</option>
+            <option value="1080x2340">HP - Full (1080×2340)</option>
+            <option value="1920x1080">Desktop (1920×1080)</option>
+            <option value="2560x1440">Desktop QHD (2560×1440)</option>
+            <option value="1080x1080">Kotak (1080×1080)</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </label>
+        <div id="custom-size" class="custom-size hidden">
+          <input type="number" id="custom-w" min="16" max="8000" value="1080" />
+          <span>×</span>
+          <input type="number" id="custom-h" min="16" max="8000" value="1920" />
+          <button id="apply-custom" class="btn-mini">OK</button>
+        </div>
+      </div>
+
+      <div class="export-controls">
+        <label class="export-scale"
+          >Resolusi
+          <select id="export-scale">
+            <option value="1">1× (asli)</option>
+            <option value="2">2× (tajam)</option>
+            <option value="3">3×</option>
+            <option value="4">4× (maks)</option>
+          </select>
+        </label>
+        <button id="download-png" class="btn-primary">⬇ PNG</button>
+        <button id="download-jpg" class="btn-primary">⬇ JPG</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <!-- TOOLBAR -->
+      <aside class="toolbar">
+        <button class="tool-btn" id="add-text" title="Tambah Teks">
+          <span class="ic">T</span><span>Teks</span>
+        </button>
+        <button class="tool-btn" id="upload-image-btn" title="Upload Gambar">
+          <span class="ic">🖼️</span><span>Gambar</span>
+        </button>
+        <input type="file" id="upload-image" accept="image/*" class="hidden" />
+
+        <div class="tool-group">
+          <div class="tool-group-title">Bentuk</div>
+          <div class="shape-grid">
+            <button class="shape-btn" data-shape="rect" title="Persegi">
+              ▭
+            </button>
+            <button class="shape-btn" data-shape="circle" title="Lingkaran">
+              ●
+            </button>
+            <button class="shape-btn" data-shape="triangle" title="Segitiga">
+              ▲
+            </button>
+            <button class="shape-btn" data-shape="line" title="Garis">╱</button>
+          </div>
+        </div>
+
+        <div class="tool-group">
+          <div class="tool-group-title">Preset</div>
+          <button class="tool-btn" id="add-glass" title="Kartu Glass">
+            <span class="ic">🧊</span><span>Glass</span>
+          </button>
+        </div>
+
+        <div class="tool-group">
+          <div class="tool-group-title">Stiker</div>
+          <div class="emoji-grid" id="emoji-grid"></div>
+        </div>
+      </aside>
+
+      <!-- CANVAS -->
+      <section class="canvas-area">
+        <div class="canvas-wrapper" id="canvas-wrapper">
+          <canvas id="c"></canvas>
+        </div>
+        <div class="canvas-meta" id="canvas-meta"></div>
+      </section>
+
+      <!-- PROPERTIES -->
+      <aside class="properties">
+        <!-- Background -->
+        <section class="panel">
+          <h3>Latar (Background)</h3>
+          <div class="row">
+            <label>Mode</label>
+            <select id="bg-mode">
+              <option value="solid">Warna Solid</option>
+              <option value="gradient">Gradasi</option>
+            </select>
+          </div>
+          <div class="row" id="bg-solid-row">
+            <label>Warna</label>
+            <input type="color" id="bg-color" value="#1e1e2e" />
+          </div>
+          <div id="bg-gradient-rows" class="hidden">
+            <div class="row">
+              <label>Warna 1</label>
+              <input type="color" id="bg-grad-1" value="#8e2de2" />
+            </div>
+            <div class="row">
+              <label>Warna 2</label>
+              <input type="color" id="bg-grad-2" value="#4a00e0" />
+            </div>
+            <div class="row">
+              <label>Arah</label>
+              <select id="bg-grad-dir">
+                <option value="to-bottom">Atas → Bawah</option>
+                <option value="to-right">Kiri → Kanan</option>
+                <option value="diagonal">Diagonal</option>
+              </select>
+            </div>
+          </div>
+          <div class="subhead">Pola / Tekstur</div>
+          <div class="row">
+            <label>Pola</label>
+            <select id="pat-type">
+              <option value="none">Tanpa</option>
+              <option value="dots">Titik (Dots)</option>
+              <option value="grid">Grid</option>
+              <option value="diag">Garis Diagonal</option>
+            </select>
+          </div>
+          <div id="pat-rows" class="hidden">
+            <div class="row">
+              <label>Warna</label>
+              <input type="color" id="pat-color" value="#ffffff" />
+            </div>
+            <div class="row">
+              <label>Transparansi</label>
+              <input
+                type="range"
+                id="pat-opacity"
+                min="5"
+                max="100"
+                value="20"
+              />
+            </div>
+            <div class="row">
+              <label>Skala</label>
+              <input
+                type="range"
+                id="pat-scale"
+                min="10"
+                max="200"
+                value="60"
+              />
+            </div>
+          </div>
+          <button class="btn-full" id="clear-bg-image">
+            Hapus Gambar Latar
+          </button>
+        </section>
+
+        <!-- Object properties -->
+        <section class="panel hidden" id="object-panel">
+          <h3>Properti Objek</h3>
+
+          <div id="text-props" class="hidden">
+            <div class="row">
+              <label>Isi Teks</label>
+              <input type="text" id="text-content" />
+            </div>
+            <div class="row">
+              <label>Font</label>
+              <select id="text-font">
+                <option value="Poppins">Poppins</option>
+                <option value="Arial">Arial</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Impact">Impact</option>
+                <option value="Comic Sans MS">Comic Sans</option>
+              </select>
+            </div>
+            <div class="row">
+              <label>Ukuran</label>
+              <input type="range" id="text-size" min="8" max="400" value="60" />
+            </div>
+            <div class="row">
+              <label>Warna</label>
+              <input type="color" id="text-color" value="#ffffff" />
+            </div>
+            <div class="row btn-row">
+              <button class="toggle-btn" id="text-bold"><b>B</b></button>
+              <button class="toggle-btn" id="text-italic"><i>I</i></button>
+              <button class="toggle-btn" id="text-underline"><u>U</u></button>
+            </div>
+          </div>
+
+          <div id="shape-props" class="hidden">
+            <div class="row">
+              <label>Isi</label>
+              <input type="color" id="shape-fill" value="#ff6b6b" />
+            </div>
+            <div class="row">
+              <label>Garis</label>
+              <input type="color" id="shape-stroke" value="#ffffff" />
+            </div>
+            <div class="row">
+              <label>Tebal Garis</label>
+              <input
+                type="range"
+                id="shape-stroke-width"
+                min="0"
+                max="50"
+                value="0"
+              />
+            </div>
+          </div>
+
+          <div class="row">
+            <label>Transparansi</label>
+            <input
+              type="range"
+              id="obj-opacity"
+              min="0"
+              max="100"
+              value="100"
+            />
+          </div>
+
+          <div id="radius-row" class="row hidden">
+            <label>Sudut Membulat</label>
+            <input type="range" id="obj-radius" min="0" max="200" value="0" />
+          </div>
+
+          <div class="subhead">Isi Gradasi</div>
+          <div class="row">
+            <label>Aktifkan</label>
+            <input type="checkbox" id="grad-enable" />
+          </div>
+          <div id="grad-rows" class="hidden">
+            <div class="row">
+              <label>Warna 1</label>
+              <input type="color" id="grad-c1" value="#ff6b6b" />
+            </div>
+            <div class="row">
+              <label>Warna 2</label>
+              <input type="color" id="grad-c2" value="#4a00e0" />
+            </div>
+            <div class="row">
+              <label>Arah</label>
+              <select id="grad-dir">
+                <option value="to-bottom">Atas → Bawah</option>
+                <option value="to-right">Kiri → Kanan</option>
+                <option value="diagonal">Diagonal</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="subhead">Efek (Depth / Glow)</div>
+          <div class="row">
+            <label>Mode</label>
+            <select id="fx-mode">
+              <option value="none">Tanpa</option>
+              <option value="shadow">Bayangan</option>
+              <option value="glow">Neon Glow</option>
+            </select>
+          </div>
+          <div id="shadow-rows" class="hidden">
+            <div class="row">
+              <label>Warna</label>
+              <input type="color" id="sh-color" value="#000000" />
+            </div>
+            <div class="row">
+              <label>Blur</label>
+              <input type="range" id="sh-blur" min="0" max="100" value="20" />
+            </div>
+            <div class="row">
+              <label>Geser X</label>
+              <input type="range" id="sh-x" min="-100" max="100" value="8" />
+            </div>
+            <div class="row">
+              <label>Geser Y</label>
+              <input type="range" id="sh-y" min="-100" max="100" value="8" />
+            </div>
+          </div>
+          <div id="glow-rows" class="hidden">
+            <div class="row">
+              <label>Warna</label>
+              <input type="color" id="glow-color" value="#00e5ff" />
+            </div>
+            <div class="row">
+              <label>Kekuatan</label>
+              <input
+                type="range"
+                id="glow-strength"
+                min="5"
+                max="150"
+                value="40"
+              />
+            </div>
+          </div>
+
+          <div class="subhead">Blend Mode</div>
+          <div class="row">
+            <label>Mode</label>
+            <select id="blend-mode">
+              <option value="normal">Normal</option>
+              <option value="multiply">Multiply</option>
+              <option value="screen">Screen</option>
+              <option value="overlay">Overlay</option>
+              <option value="lighter">Lighter</option>
+              <option value="difference">Difference</option>
+            </select>
+          </div>
+
+          <div class="row btn-row layer-row">
+            <button class="btn-mini" id="layer-forward" title="Maju">⬆</button>
+            <button class="btn-mini" id="layer-back" title="Mundur">⬇</button>
+            <button class="btn-mini" id="obj-duplicate" title="Duplikat">
+              ⧉
+            </button>
+            <button class="btn-mini danger" id="obj-delete" title="Hapus">
+              🗑
+            </button>
+          </div>
+        </section>
+
+        <!-- Filters -->
+        <section class="panel">
+          <h3>Filter Gambar Latar</h3>
+          <p class="hint" id="filter-hint">
+            Upload gambar latar untuk memakai filter.
+          </p>
+          <div class="row">
+            <label>Blur</label>
+            <input type="range" id="f-blur" min="0" max="100" value="0" />
+          </div>
+          <div class="row">
+            <label>Terang</label>
+            <input
+              type="range"
+              id="f-brightness"
+              min="-100"
+              max="100"
+              value="0"
+            />
+          </div>
+          <div class="row">
+            <label>Kontras</label>
+            <input
+              type="range"
+              id="f-contrast"
+              min="-100"
+              max="100"
+              value="0"
+            />
+          </div>
+          <div class="row">
+            <label>Saturasi</label>
+            <input
+              type="range"
+              id="f-saturation"
+              min="-100"
+              max="100"
+              value="0"
+            />
+          </div>
+          <div class="row">
+            <label>Ketajaman</label>
+            <input type="range" id="f-sharpen" min="0" max="100" value="0" />
+          </div>
+          <div class="row">
+            <label>Grain/Noise</label>
+            <input type="range" id="f-noise" min="0" max="100" value="0" />
+          </div>
+          <div class="row">
+            <label>Grayscale</label>
+            <input type="checkbox" id="f-grayscale" />
+          </div>
+        </section>
+
+        <!-- Efek Kanvas -->
+        <section class="panel">
+          <h3>Efek Kanvas</h3>
+          <div class="row">
+            <label>Vignette</label>
+            <input type="checkbox" id="vig-enable" />
+          </div>
+          <div class="row">
+            <label>Intensitas</label>
+            <input
+              type="range"
+              id="vig-intensity"
+              min="0"
+              max="100"
+              value="45"
+            />
+          </div>
+          <div class="row">
+            <label>Warna Vignette</label>
+            <input type="color" id="vig-color" value="#000000" />
+          </div>
+        </section>
+
+        <button class="btn-full danger" id="clear-all">Bersihkan Semua</button>
+      </aside>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
